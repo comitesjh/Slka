@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Meu ChatGPT</title>
+
+<style>
+body{
+font-family: Arial;
+background:#0f172a;
+color:white;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+margin:0;
+}
+
+#chat{
+width:500px;
+height:600px;
+background:#1e293b;
+border-radius:10px;
+display:flex;
+flex-direction:column;
+}
+
+#messages{
+flex:1;
+padding:15px;
+overflow-y:auto;
+}
+
+.message{
+margin:10px 0;
+}
+
+.user{
+text-align:right;
+color:#38bdf8;
+}
+
+.bot{
+text-align:left;
+color:#22c55e;
+}
+
+#inputArea{
+display:flex;
+border-top:1px solid #334155;
+}
+
+input{
+flex:1;
+padding:10px;
+border:none;
+outline:none;
+background:#0f172a;
+color:white;
+}
+
+button{
+padding:10px 20px;
+border:none;
+background:#38bdf8;
+color:white;
+cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div id="chat">
+
+<div id="messages"></div>
+
+<div id="inputArea">
+<input id="userInput" placeholder="Digite sua mensagem...">
+<button onclick="sendMessage()">Enviar</button>
+</div>
+
+</div>
+
+<script>
+
+function sendMessage(){
+
+let input = document.getElementById("userInput")
+let msg = input.value
+
+if(msg === "") return
+
+addMessage(msg,"user")
+
+input.value=""
+
+setTimeout(()=>{
+let response = botReply(msg)
+addMessage(response,"bot")
+},500)
+
+}
+
+function addMessage(text,type){
+
+let div = document.createElement("div")
+div.className="message "+type
+div.innerText=text
+
+document.getElementById("messages").appendChild(div)
+
+}
+
+function botReply(msg){
+
+msg = msg.toLowerCase()
+
+if(msg.includes("oi")) return "Olá! 👋"
+if(msg.includes("como você está")) return "Estou funcionando perfeitamente!"
+if(msg.includes("seu nome")) return "Sou um mini ChatGPT feito em HTML."
+
+return "Ainda estou aprendendo 🤖"
+
+}
+
+</script>
+
+</body>
+</html>
