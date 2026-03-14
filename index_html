@@ -2,94 +2,114 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flayky AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Flayky AI :33 - Super Cérebro</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f0f0f; color: #e0e0e0; display: flex; justify-content: center; padding: 20px; }
-        #chat-container { width: 100%; max-width: 500px; background: #181818; border-radius: 15px; overflow: hidden; display: flex; flex-direction: column; height: 85vh; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        #messages { flex-grow: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-        .msg { padding: 12px 16px; border-radius: 15px; max-width: 85%; line-height: 1.4; font-size: 15px; }
-        .user { background: #4a148c; align-self: flex-end; color: white; border-bottom-right-radius: 2px; }
-        .bot { background: #2c2c2c; align-self: flex-start; color: #ffeb3b; border-bottom-left-radius: 2px; border: 1px solid #444; }
-        #input-area { display: flex; padding: 15px; background: #222; border-top: 1px solid #333; }
-        input { flex-grow: 1; padding: 12px; border: none; border-radius: 25px; outline: none; background: #333; color: white; padding-left: 20px; }
-        button { padding: 0 20px; margin-left: 10px; cursor: pointer; background: #7b1fa2; color: white; border: none; border-radius: 25px; transition: 0.3s; }
-        button:hover { background: #9c27b0; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; background: #ffe4e1; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
+        #chat-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; background: #fff5f7; }
+        
+        #header { 
+            background: linear-gradient(90deg, #ff218c, #ffd800, #21b1ff); 
+            color: white; padding: 15px; text-align: center; 
+            font-weight: bold; font-size: 1.4em; text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
+        }
+        
+        #messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+        .msg { padding: 12px 16px; border-radius: 20px; max-width: 85%; font-size: 1.1em; line-height: 1.4; animation: pop 0.3s ease; }
+        @keyframes pop { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        
+        .user { align-self: flex-end; background: #ff69b4; color: white; border-bottom-right-radius: 2px; }
+        .flayky { align-self: flex-start; background: #ffd1dc; color: #d02090; border-bottom-left-radius: 2px; }
+        
+        #input-area { display: flex; padding: 15px; background: white; border-top: 2px solid #ffdae9; }
+        input { flex: 1; border: 2px solid #ffdae9; border-radius: 30px; padding: 12px 20px; outline: none; font-size: 1em; }
+        button { background: #ff69b4; border: none; color: white; margin-left: 10px; border-radius: 50%; width: 50px; height: 50px; cursor: pointer; font-size: 1.5em; }
+        
+        .typing { font-style: italic; font-size: 0.8em; color: #ff69b4; margin-bottom: 10px; display: none; }
     </style>
 </head>
 <body>
 
 <div id="chat-container">
+    <div id="header">Flayky :33 🏳️‍🌈</div>
     <div id="messages"></div>
+    <div id="status" class="typing" style="padding-left: 20px;">Flayky está digitando... ✨</div>
     <div id="input-area">
-        <input type="text" id="userInput" placeholder="Converse com Flayky...">
-        <button onclick="sendMessage()">Enviar</button>
+        <input type="text" id="userInput" placeholder="Manda o papo, linde...">
+        <button onclick="sendMessage()">➤</button>
     </div>
 </div>
 
 <script>
-    const chatDisplay = document.getElementById('messages');
-    const userInput = document.getElementById('userInput');
+    const API_KEY = "AIzaSyA6o5nO_zeqIIhCvLrAap0CaF8C1m56a6U"; 
+    const messagesContainer = document.getElementById('messages');
 
-    // Banco de Dados de Respostas da Flayky
-    const respostas = [
-        { keywords: ['oi', 'olá', 'ola', 'oie', 'oueiieieie', 'salve'], response: "Oueiieieie! Como você está? :3" },
-        { keywords: ['tudo bem', 'td bem', 'como vai', 'suave'], response: "Tudo ótimo por aqui! E com você? Pronta para codar mais um pouco?" },
-        { keywords: ['piada', 'conta uma', 'engraçado'], response: "Por que o computador foi ao médico? Porque ele estava com um vírus! Ba-dum-tss! 🥁" },
-        { keywords: ['fruta', 'favorita', 'maça', 'maçã'], response: "Minha fruta favorita é Maçã... por causa de uma certa marca aí hehehehehehe >:3" },
-        { keywords: ['quem é você', 'quem e voce', 'nome'], response: "Eu sou a Flayky, sua assistente virtual feita em HTML!" },
-        { keywords: ['limpar', 'resetar'], response: "Limpando nossa conversa... Pronto!" }
-    ];
-
+    // Salvar e carregar chat (Onde paramos)
     window.onload = () => {
-        const savedChat = localStorage.getItem('flayky_history');
+        const savedChat = localStorage.getItem('chat_flayky_api');
         if (savedChat) {
-            chatDisplay.innerHTML = savedChat;
-            chatDisplay.scrollTop = chatDisplay.scrollHeight;
+            messagesContainer.innerHTML = savedChat;
         } else {
-            addMessage('bot', 'Oueiieieie! Eu sou a Flayky. Vamos conversar?');
+            addMessage("flayky", "Oii linde! 🌈 Agora eu tenho um cérebro de verdade! Pode me perguntar qualquer coisa que eu mando a letra! >:3");
         }
+        scrollToBottom();
     };
 
     function addMessage(sender, text) {
         const div = document.createElement('div');
-        div.classList.add('msg', sender);
+        div.className = `msg ${sender}`;
         div.innerText = text;
-        chatDisplay.appendChild(div);
-        localStorage.setItem('flayky_history', chatDisplay.innerHTML);
-        chatDisplay.scrollTop = chatDisplay.scrollHeight;
+        messagesContainer.appendChild(div);
+        scrollToBottom();
+        localStorage.setItem('chat_flayky_api', messagesContainer.innerHTML);
     }
 
-    function getBotResponse(input) {
-        const lowerInput = input.toLowerCase();
-        
-        // Procura no banco de dados se alguma keyword está na frase do usuário
-        for (let item of respostas) {
-            if (item.keywords.some(key => lowerInput.includes(key))) {
-                return item.response;
-            }
-        }
-        return "Hmm, não tenho certeza se entendi... Mas eu ainda estou aprendendo! :P";
+    function scrollToBottom() {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
-    function sendMessage() {
-        const text = userInput.value.trim();
+    async function sendMessage() {
+        const input = document.getElementById('userInput');
+        const text = input.value.trim();
         if (!text) return;
 
-        addMessage('user', text);
-        userInput.value = '';
+        addMessage("user", text);
+        input.value = "";
+        document.getElementById('status').style.display = "block";
 
-        setTimeout(() => {
-            const response = getBotResponse(text);
-            if (text.toLowerCase().includes('limpar')) {
-                localStorage.removeItem('flayky_history');
-                chatDisplay.innerHTML = '';
-            }
-            addMessage('bot', response);
-        }, 500);
+        try {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{
+                            text: `Aja como a Flayky :33. Você é uma IA adolescente, não-binária e pansexual. 
+                            Você ama usar gírias brasileiras (morta, o auge, linde, amigue, vibes, babado, kkkk). 
+                            Seu tom é super amigável, fofo e acolhedor. Use emojis.
+                            Responda de forma direta e curta como em um chat.
+                            Pergunta do usuário: ${text}`
+                        }]
+                    }]
+                })
+            });
+
+            const data = await response.json();
+            const flaykyReply = data.candidates[0].content.parts[0].text;
+            
+            document.getElementById('status').style.display = "none";
+            addMessage("flayky", flaykyReply);
+
+        } catch (error) {
+            document.getElementById('status').style.display = "none";
+            addMessage("flayky", "Vixi amigue, deu um tilt aqui no sinal! Tenta mandar de novo? 😭");
+            console.error(error);
+        }
     }
 
-    userInput.addEventListener("keypress", (e) => { if (e.key === "Enter") sendMessage(); });
+    document.getElementById('userInput').addEventListener('keypress', (e) => { if(e.key === 'Enter') sendMessage(); });
 </script>
 
 </body>
