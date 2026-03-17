@@ -2,105 +2,130 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Editor de Vídeo Simples</title>
+  <title>Editor de Vídeo & Som</title>
   <style>
-    body {
-      font-family: Arial;
-      text-align: center;
-      background: #111;
-      color: white;
-    }
-
-    button {
-      padding: 10px 20px;
-      margin: 10px;
-      border: none;
-      background: #ff0055;
-      color: white;
-      cursor: pointer;
-      border-radius: 8px;
-    }
-
-    video {
-      margin-top: 20px;
-      max-width: 90%;
-      border-radius: 10px;
-    }
-
-    .controls {
-      margin-top: 15px;
-    }
-
-    input {
-      width: 200px;
-    }
-
-    #downloadBtn {
-      position: fixed;
-      top: 10px;
-      right: 10px;
-      background: green;
-    }
+    body { font-family: 'Segoe UI', sans-serif; background: #121212; color: white; text-align: center; padding: 20px; }
+    .container { max-width: 900px; margin: auto; }
+    video { width: 100%; border-radius: 12px; background: #000; margin-bottom: 10px; }
+    .track-box { background: #1e1e1e; padding: 15px; border-radius: 10px; margin-top: 10px; border-left: 5px solid #ff0055; text-align: left; }
+    .controls-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; }
+    button { padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+    .btn-main { background: #ff0055; color: white; }
+    .btn-rec { background: #dc3545; color: white; }
+    .btn-audio { background: #007bff; color: white; }
+    .recording { animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    input[type="range"] { accent-color: #ff0055; width: 100%; }
+    label { font-size: 12px; color: #888; }
   </style>
 </head>
 <body>
 
-<h1>Editor de Vídeo</h1>
+<div class="container">
+  <h1>Editor Multimídia</h1>
 
-<button onclick="abrirGaleria()">Escolher Vídeo</button>
+  <video id="mainVideo" controls></video>
 
-<input type="file" id="fileInput" accept="video/*" style="display:none">
+  <div class="controls-grid">
+    <button class="btn-main" onclick="document.getElementById('vidInput').click()">📁 Carregar Vídeo Principal</button>
+    <button class="btn-audio" onclick="document.getElementById('audInput').click()">🎵 Adicionar MP3/Áudio</button>
+    <button class="btn-audio" onclick="document.getElementById('vidToAudInput').click()">🎥 Extrair Som de Vídeo</button>
+    <button id="recBtn" class="btn-rec" onclick="toggleGravar()">🎤 Gravar Voz</button>
+  </div>
 
-<br>
+  <input type="file" id="vidInput" accept="video/*" hidden onchange="carregarPrincipal(this)">
+  <input type="file" id="audInput" accept="audio/*" hidden onchange="adicionarAudio(this)">
+  <input type="file" id="vidToAudInput" accept="video/*" hidden onchange="extrairAudio(this)">
 
-<video id="video" controls></video>
-
-<div class="controls">
-  <p>Volume</p>
-  <input type="range" min="0" max="1" step="0.1" onchange="mudarVolume(this.value)">
-
-  <p>Velocidade</p>
-  <input type="range" min="0.5" max="2" step="0.1" onchange="mudarVelocidade(this.value)">
-
-  <p>Brilho</p>
-  <input type="range" min="50" max="150" step="10" onchange="mudarBrilho(this.value)">
+  <div id="audioTracks">
+    </div>
 </div>
 
-<button id="downloadBtn" onclick="baixarVideo()">Baixar Vídeo</button>
-
 <script>
-  let video = document.getElementById("video");
-  let fileInput = document.getElementById("fileInput");
+  const video = document.getElementById("mainVideo");
+  const audioTracksContainer = document.getElementById("audioTracks");
+  let mediaRecorder;
+  let audioChunks = [];
+  let extraTracks = [];
 
-  function abrirGaleria() {
-    fileInput.click();
+  // 1. Carregar Vídeo Principal
+  function carregarPrincipal(input) {
+    const file = input.files[0];
+    video.src = URL.createObjectURL(file);
+    resetarSincronia();
   }
 
-  fileInput.onchange = function(event) {
-    let file = event.target.files[0];
-    let url = URL.createObjectURL(file);
-    video.src = url;
+  // 2. Adicionar Áudio Externo (MP3) ou Extraído
+  function adicionarAudio(input, fileOverride = null) {
+    const file = fileOverride || input.files[0];
+    const url = URL.createObjectURL(file);
+    criarElementoAudio(url, file.name || "Trilha de Áudio");
   }
 
-  function mudarVolume(valor) {
-    video.volume = valor;
+  // 3. Extrair Áudio de outro Vídeo
+  function extrairAudio(input) {
+    const file = input.files[0];
+    // Criamos um elemento de vídeo invisível para processar o som
+    const tempVideo = document.createElement('video');
+    tempVideo.src = URL.createObjectURL(file);
+    adicionarAudio(null, file); // O navegador trata o áudio do vídeo como trilha
   }
 
-  function mudarVelocidade(valor) {
-    video.playbackRate = valor;
-  }
-
-  function mudarBrilho(valor) {
-    video.style.filter = `brightness(${valor}%)`;
-  }
-
-  function baixarVideo() {
-    alert("⚠️ Download real com edição completa precisa de backend ou biblioteca pesada (ex: FFmpeg). Esse botão é só demonstração.");
+  // 4. Gravação de Voz
+  async function toggleGravar() {
+    const btn = document.getElementById('recBtn');
     
-    let link = document.createElement("a");
-    link.href = video.src;
-    link.download = "video_editado.mp4";
-    link.click();
+    if (!mediaRecorder || mediaRecorder.state === "inactive") {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+      audioChunks = [];
+
+      mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(audioChunks, { type: 'audio/ogg; codecs=opus' });
+        const url = URL.createObjectURL(blob);
+        criarElementoAudio(url, "Gravação de Voz");
+      };
+
+      mediaRecorder.start();
+      btn.innerText = "🛑 Parar Gravação";
+      btn.classList.add('recording');
+    } else {
+      mediaRecorder.stop();
+      btn.innerText = "🎤 Gravar Voz";
+      btn.classList.remove('recording');
+    }
+  }
+
+  // 5. Criar Interface da Trilha
+  function criarElementoAudio(url, nome) {
+    const id = "aud_" + Date.now();
+    const div = document.createElement('div');
+    div.className = "track-box";
+    div.innerHTML = `
+      <strong>${nome}</strong><br>
+      <audio id="${id}" src="${url}"></audio>
+      <label>Volume da Trilha</label>
+      <input type="range" min="0" max="1" step="0.1" value="0.8" oninput="document.getElementById('${id}').volume = this.value">
+      <button onclick="this.parentElement.remove()" style="background:none; color:red; float:right;">Remover</button>
+    `;
+    audioTracksContainer.appendChild(div);
+    extraTracks.push(document.getElementById(id));
+  }
+
+  // 6. Sincronização: Quando o vídeo der Play, o áudio dá Play
+  video.onplay = () => {
+    document.querySelectorAll('audio').forEach(a => a.play());
+  };
+  video.onpause = () => {
+    document.querySelectorAll('audio').forEach(a => a.pause());
+  };
+  video.onseeking = () => {
+    document.querySelectorAll('audio').forEach(a => a.currentTime = video.currentTime);
+  };
+
+  function resetarSincronia() {
+    localStorage.removeItem('videoProState'); // Limpa cache antigo se necessário
   }
 </script>
 
